@@ -24,16 +24,16 @@ def load_data(directory):
             people[row["id"]] = {
                 "name": row["name"],
                 "birth": row["birth"],
-                "movies": set() #Since there is no row with movies in people.csv, we're using set() to create an empty list of iterables. 
+                "movies": set()
             }
             if row["name"].lower() not in names:
                 names[row["name"].lower()] = {row["id"]}
             else:
-                names[row["name"].lower()].add(row["id"]) #Add() adds elements to a set. It turn this int into a list of ints.
+                names[row["name"].lower()].add(row["id"])
 
     # Load movies
     with open(f"{directory}/movies.csv", encoding="utf-8") as f:
-        reader = csv.DictReader(f) # is this what makes python special. It has ready made functions like this that just does everything for you? like reading dictionaries.
+        reader = csv.DictReader(f)
         for row in reader:
             movies[row["id"]] = {
                 "title": row["title"],
@@ -46,16 +46,16 @@ def load_data(directory):
         reader = csv.DictReader(f)
         for row in reader:
             try:
-                people[row["person_id"]]["movies"].add(row["movie_id"]) # what does the second [] mean. What is .add
+                people[row["person_id"]]["movies"].add(row["movie_id"])
                 movies[row["movie_id"]]["stars"].add(row["person_id"])
-            except KeyError: # what is this? I'm guessing the try and except structure is used to prevent errors from doing what to the program?
+            except KeyError:
                 pass
 
 
 def main():
     if len(sys.argv) > 2:
-        sys.exit("Usage: python degrees.py [directory]") #.exit allows the program to stop with explaination
-    directory = sys.argv[1] if len(sys.argv) == 2 else "large" # arg len starts from python3 but the list starts from filename
+        sys.exit("Usage: python degrees.py [directory]")
+    directory = sys.argv[1] if len(sys.argv) == 2 else "large"
 
     # Load data from files into memory
     print("Loading data...")
@@ -84,19 +84,47 @@ def main():
             print(f"{i + 1}: {person1} and {person2} starred in {movie}")
 
 
-frontier = []
-
 def shortest_path(source, target):
-    searchList = neighbors_for_person(person_id_for_name(source))
-    print(searchList)
-    for id in searchList[1]:
-        if id == person_id_for_name(target):
-            return [people[id]["name"], people[id]["movie"]]
-        frontier = frontier.append(id)
-        node = frontier[0]
-        frontier = frontier[1:]
-        return [source, target].append(shortest_path(node,target))
-    return None
+    """
+    Returns the shortest list of (movie_id, person_id) pairs
+    that connect the source to the target.
+
+    If no possible path, returns None.
+    """
+    # Initialize frontier to just the starting position
+    start = Node(state = source, parent = None, action = people[source]["movies"])
+    frontier = QueueFrontier()
+    frontier.add(start)
+    
+    # Initialize an empty explored set
+    explored = set()
+
+    while True:
+
+        if frontier.empty():
+            raise Exception("no solution")
+        
+        node = frontier.remove()
+
+        if node.state == target:
+            movies = []
+            stars = []
+            while node.parent is not None:
+                movies.append(node.action)
+                stars.append(node.state)
+                node = node.parent
+            movies.reverse()
+            stars.reverse()
+            solution = list(zip(movies, stars))
+            return solution
+        
+        #mark node as explored
+        explored.add(node.state)
+
+        for action, state in neighbors_for_person(node.state):
+            if not frontier.contains_state(state) and state not in explored:
+                child = Node(state = state, parent = node, action = action)
+                frontier.add(child)
 
 
 def person_id_for_name(name):
@@ -133,9 +161,8 @@ def neighbors_for_person(person_id):
     movie_ids = people[person_id]["movies"]
     neighbors = set()
     for movie_id in movie_ids:
-        for costar in movies[movie_id]["stars"]:
-            if costar != person_id:
-                neighbors.add((movie_id, costar))
+        for person_id in movies[movie_id]["stars"]:
+            neighbors.add((movie_id, person_id))
     return neighbors
 
 
