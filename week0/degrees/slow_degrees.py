@@ -104,27 +104,27 @@ def shortest_path(source, target):
         if frontier.empty():
             raise Exception("no solution")
         
-        # Removes the 0th element of the queue frontier.
         node = frontier.remove()
+
+        if node.state == target:
+            movies = []
+            stars = []
+            while node.parent is not None:
+                movies.append(node.action)
+                stars.append(node.state)
+                node = node.parent
+            movies.reverse()
+            stars.reverse()
+            solution = list(zip(movies, stars))
+            return solution
+        
+        #mark node as explored
+        explored.add(node.state)
 
         for action, state in neighbors_for_person(node.state):
             if not frontier.contains_state(state) and state not in explored:
                 child = Node(state = state, parent = node, action = action)
-                if child.state == target:
-                    movies = []
-                    stars = []
-                    while child.parent is not None:
-                        movies.append(child.action)
-                        stars.append(child.state)
-                        child = child.parent
-                    movies.reverse()
-                    stars.reverse()
-                    solution = list(zip(movies, stars))
-                    return solution
-                
-                explored.add(node.state)  # Mark node as explored since it was explored when it was first added to the frontier.
-
-                frontier.add(child) # As this explored state is not the target, it is added to the frontier so that it's neighbors could be searched. 
+                frontier.add(child)
 
 
 def person_id_for_name(name):
